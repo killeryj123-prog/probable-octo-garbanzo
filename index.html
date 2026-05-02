@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="로또추천">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#f5c842">
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<title>로또 스마트 추천기</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+:root{
+  --bg:#0a0a0f;--surface:#12121a;--card:#1a1a26;--border:#2a2a3a;
+  --gold:#f5c842;--green:#2ed573;--text:#e8e8f0;--muted:#6b6b8a;
+  --safe-top: env(safe-area-inset-top);
+  --safe-bot: env(safe-area-inset-bottom);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:'Noto Sans KR',sans-serif;
+  display:flex;flex-direction:column;
+}
+body::before{
+  content:'';position:fixed;inset:0;
+  background:
+    radial-gradient(ellipse 60% 40% at 20% 20%,rgba(245,200,66,0.06) 0%,transparent 60%),
+    radial-gradient(ellipse 50% 50% at 80% 80%,rgba(55,66,250,0.07) 0%,transparent 60%);
+  pointer-events:none;z-index:0;
+}
+
+/* ── 상단 탭 바 ── */
+.tab-bar{
+  position:relative;z-index:10;
+  padding-top:var(--safe-top);
+  background:rgba(10,10,15,0.95);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+.tab-bar-inner{display:flex;}
+.tab{
+  flex:1;padding:14px 8px;text-align:center;
+  font-size:12px;font-weight:700;color:var(--muted);
+  cursor:pointer;transition:all 0.2s;border-bottom:2px solid transparent;
+  letter-spacing:0.5px;
+}
+.tab.on{color:var(--gold);border-bottom-color:var(--gold);}
+
+/* ── 페이지 ── */
+.pages{flex:1;overflow:hidden;position:relative;z-index:1;}
+.page{
+  position:absolute;inset:0;overflow-y:auto;
+  padding:20px 16px calc(20px + var(--safe-bot));
+  display:none;
+}
+.page.on{display:block;}
+/* iOS momentum scroll */
+.page{-webkit-overflow-scrolling:touch;}
+
+/* ── 홈 페이지 ── */
+.home-header{text-align:center;margin-bottom:24px;}
+.badge{
+  display:inline-block;background:rgba(245,200,66,0.12);
+  border:1px solid rgba(245,200,66,0.3);border-radius:100px;
+  padding:4px 14px;font-size:10px;font-weight:700;letter-spacing:3px;
+  color:var(--gold);text-transform:uppercase;margin-bottom:10px;
+}
+h1{
+  font-family:'Black Han Sans',sans-serif;font-size:38px;line-height:1;
+  background:linear-gradient(135deg,#f5c842 0%,#e8a020 40%,#ff6b35 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  margin-bottom:6px;
+}
+.sub{color:var(--muted);font-size:12px;line-height:1.8;}
+
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:20px;}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 8px;text-align:center;}
+.stat-n{font-family:'Black Han Sans',sans-serif;font-size:18px;color:var(--gold);margin-bottom:2px;}
+.stat-l{font-size:9px;color:var(--muted);}
+
+.prob-bar{
+  background:var(--surface);border:1px solid rgba(46,213,115,0.2);
+  border-radius:12px;padding:12px 16px;
+  display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;
+}
+.prob-label{font-size:11px;color:var(--muted);}
+.prob-val{font-family:'Black Han Sans',sans-serif;font-size:16px;color:var(--green);}
+
+.count-row{display:flex;gap:7px;margin-bottom:16px;}
+.cb{
+  flex:1;padding:11px 4px;background:var(--surface);border:1px solid var(--border);
+  border-radius:10px;color:var(--muted);font-size:13px;font-weight:700;
+  cursor:pointer;transition:all 0.2s;font-family:'Noto Sans KR',sans-serif;
+}
+.cb.on{background:rgba(245,200,66,0.12);border-color:var(--gold);color:var(--gold);}
+
+.gen-btn{
+  width:100%;padding:18px;
+  background:linear-gradient(135deg,#f5c842,#e8a020);
+  border:none;border-radius:14px;
+  font-family:'Black Han Sans',sans-serif;font-size:20px;color:#0a0a0f;
+  cursor:pointer;transition:all 0.25s;margin-bottom:20px;letter-spacing:1px;
+  box-shadow:0 6px 24px rgba(245,200,66,0.25);
+}
+.gen-btn:active{transform:scale(0.97);}
+
+/* 결과 카드 */
+.rc{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:16px;padding:16px 18px;margin-bottom:12px;
+  animation:up 0.35s ease both;
+}
+@keyframes up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.rc-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.rc-label{font-size:10px;font-weight:700;letter-spacing:2px;color:var(--muted);text-transform:uppercase;}
+.rc-prob{font-size:9px;color:var(--green);background:rgba(46,213,115,0.1);border:1px solid rgba(46,213,115,0.2);border-radius:100px;padding:3px 9px;}
+.balls{display:flex;gap:7px;flex-wrap:wrap;}
+.ball{
+  width:44px;height:44px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Black Han Sans',sans-serif;font-size:15px;color:#fff;
+  box-shadow:0 3px 8px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.2);
+  animation:pop 0.4s ease both;
+}
+@keyframes pop{from{opacity:0;transform:scale(0.3)}to{opacity:1;transform:scale(1)}}
+.b1{background:linear-gradient(135deg,#ffcc00,#ff9900);color:#222;}
+.b2{background:linear-gradient(135deg,#4fc3f7,#0288d1);}
+.b3{background:linear-gradient(135deg,#ef5350,#c62828);}
+.b4{background:linear-gradient(135deg,#9c9c9c,#555);}
+.b5{background:linear-gradient(135deg,#66bb6a,#2e7d32);}
+.fi-tags{font-size:10px;color:var(--muted);margin-top:9px;}
+.fi-tags span{color:var(--gold);font-weight:600;}
+
+.empty{text-align:center;padding:40px 16px;color:var(--muted);}
+.empty-icon{font-size:40px;margin-bottom:12px;}
+.empty-text{font-size:13px;line-height:1.9;}
+
+/* ── 필터 페이지 ── */
+.filter-header{margin-bottom:16px;}
+.filter-title{font-family:'Black Han Sans',sans-serif;font-size:26px;color:var(--gold);margin-bottom:4px;}
+.filter-sub{font-size:11px;color:var(--muted);}
+.filter-group-title{
+  font-size:10px;font-weight:700;letter-spacing:2px;color:var(--muted);
+  text-transform:uppercase;margin:16px 0 8px;
+}
+.fi{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 14px;background:var(--card);border:1px solid var(--border);
+  border-radius:12px;cursor:pointer;transition:all 0.2s;user-select:none;margin-bottom:8px;
+}
+.fi:active{opacity:0.7;}
+.fi.on{border-color:rgba(245,200,66,0.45);background:rgba(245,200,66,0.06);}
+.fi-l{display:flex;align-items:center;gap:10px;}
+.fi-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.fi-name{font-size:13px;font-weight:500;margin-bottom:2px;color:var(--text);}
+.fi-desc{font-size:10px;color:var(--muted);line-height:1.4;}
+.tog{width:44px;height:24px;background:var(--border);border-radius:100px;position:relative;transition:background 0.3s;flex-shrink:0;}
+.tog::after{content:'';position:absolute;top:4px;left:4px;width:16px;height:16px;background:#fff;border-radius:50%;transition:transform 0.3s;box-shadow:0 1px 3px rgba(0,0,0,0.3);}
+.fi.on .tog{background:var(--gold);}
+.fi.on .tog::after{transform:translateX(20px);}
+
+.reset-btn{
+  width:100%;padding:14px;background:var(--surface);border:1px solid var(--border);
+  border-radius:12px;color:var(--muted);font-size:13px;font-weight:600;
+  cursor:pointer;margin-top:8px;font-family:'Noto Sans KR',sans-serif;
+}
+.reset-btn:active{opacity:0.7;}
+
+/* ── 설치 안내 페이지 ── */
+.install-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:14px;}
+.install-card h2{font-family:'Black Han Sans',sans-serif;font-size:20px;color:var(--gold);margin-bottom:12px;}
+.install-step{display:flex;align-items:flex-start;gap:12px;margin-bottom:14px;}
+.step-num{
+  width:28px;height:28px;border-radius:50%;background:var(--gold);
+  color:#0a0a0f;font-weight:700;font-size:13px;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.step-txt{font-size:13px;line-height:1.7;color:var(--text);}
+.step-txt b{color:var(--gold);}
+.os-badge{
+  display:inline-block;padding:3px 10px;border-radius:100px;
+  font-size:10px;font-weight:700;margin-bottom:10px;
+}
+.ios{background:rgba(55,66,250,0.15);color:#818cf8;border:1px solid rgba(55,66,250,0.3);}
+.android{background:rgba(46,213,115,0.12);color:#2ed573;border:1px solid rgba(46,213,115,0.3);}
+.tip-box{background:rgba(245,200,66,0.07);border:1px solid rgba(245,200,66,0.2);border-radius:10px;padding:12px 14px;font-size:12px;color:var(--muted);line-height:1.7;}
+.tip-box b{color:var(--gold);}
+</style>
+</head>
+<body>
+
+<!-- 탭 바 -->
+<div class="tab-bar">
+  <div class="tab-bar-inner">
+    <div class="tab on" onclick="showTab('home',this)">🎲 번호추천</div>
+    <div class="tab" onclick="showTab('filter',this)">⚙️ 필터설정</div>
+    <div class="tab" onclick="showTab('install',this)">📲 설치방법</div>
+  </div>
+</div>
+
+<!-- 페이지들 -->
+<div class="pages">
+
+  <!-- 홈 -->
+  <div class="page on" id="page-home">
+    <div class="home-header">
+      <div class="badge">🎰 Smart Filter</div>
+      <h1>로또 추천기</h1>
+      <p class="sub">통계적 제외 조건 적용<br>스마트하게 번호를 선택하세요</p>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="stat-n">814만</div><div class="stat-l">전체 조합</div></div>
+      <div class="stat"><div class="stat-n" id="sExcl">0</div><div class="stat-l">제외 조합</div></div>
+      <div class="stat"><div class="stat-n" id="sRemain">814만</div><div class="stat-l">유효 조합</div></div>
+    </div>
+    <div class="prob-bar">
+      <div class="prob-label">현재 유효 조합 기준 확률</div>
+      <div class="prob-val" id="probVal">1 / 8,145,060</div>
+    </div>
+    <div class="count-row">
+      <button class="cb on" onclick="setCount(1,this)">1게임</button>
+      <button class="cb" onclick="setCount(3,this)">3게임</button>
+      <button class="cb" onclick="setCount(5,this)">5게임</button>
+      <button class="cb" onclick="setCount(10,this)">10게임</button>
+    </div>
+    <button class="gen-btn" onclick="generate()">🎲 번호 생성하기</button>
+    <div id="results">
+      <div class="empty">
+        <div class="empty-icon">🎯</div>
+        <div class="empty-text">버튼을 눌러<br>스마트 번호를 추천받으세요</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 필터 -->
+  <div class="page" id="page-filter">
+    <div class="filter-header">
+      <div class="filter-title">필터 설정</div>
+      <div class="filter-sub">제외할 조건을 선택하세요</div>
+    </div>
+    <div id="filterList"></div>
+    <button class="reset-btn" onclick="resetFilters()">🔄 전체 초기화 (모두 ON)</button>
+  </div>
+
+  <!-- 설치방법 -->
+  <div class="page" id="page-install">
+    <div class="filter-header">
+      <div class="filter-title">앱 설치 방법</div>
+      <div class="filter-sub">홈 화면에 아이콘을 추가하세요</div>
+    </div>
+
+    <div class="install-card">
+      <div class="os-badge ios">🍎 아이폰 (iOS / Safari)</div>
+      <div class="install-step">
+        <div class="step-num">1</div>
+        <div class="step-txt">Safari 브라우저로 이 페이지를 열어주세요<br><b>크롬/네이버 앱은 지원 안됩니다</b></div>
+      </div>
+      <div class="install-step">
+        <div class="step-num">2</div>
+        <div class="step-txt">하단 가운데 <b>공유 버튼(□↑)</b>을 탭하세요</div>
+      </div>
+      <div class="install-step">
+        <div class="step-num">3</div>
+        <div class="step-txt"><b>"홈 화면에 추가"</b>를 탭하세요</div>
+      </div>
+      <div class="install-step">
+        <div class="step-num">4</div>
+        <div class="step-txt">오른쪽 상단 <b>"추가"</b>를 탭하면 완료!</div>
+      </div>
+    </div>
+
+    <div class="install-card">
+      <div class="os-badge android">🤖 안드로이드 (Chrome)</div>
+      <div class="install-step">
+        <div class="step-num">1</div>
+        <div class="step-txt">Chrome 브라우저로 이 페이지를 열어주세요</div>
+      </div>
+      <div class="install-step">
+        <div class="step-num">2</div>
+        <div class="step-txt">우측 상단 <b>점 3개 메뉴(⋮)</b>를 탭하세요</div>
+      </div>
+      <div class="install-step">
+        <div class="step-num">3</div>
+        <div class="step-txt"><b>"홈 화면에 추가"</b> 또는<br><b>"앱 설치"</b>를 탭하세요</div>
+      </div>
+      <div class="install-step">
+        <div class="step-num">4</div>
+        <div class="step-txt"><b>"설치"</b>를 탭하면 완료!</div>
+      </div>
+    </div>
+
+    <div class="tip-box">
+      💡 <b>설치 후에는</b> 인터넷 없이도 오프라인으로 사용 가능합니다.<br>
+      홈 화면에서 다른 앱처럼 전체화면으로 실행돼요!
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── 탭 전환 ──────────────────────────────────────────────────
+function showTab(id, btn) {
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('on');});
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('on');});
+  document.getElementById('page-'+id).classList.add('on');
+  btn.classList.add('on');
+}
+
+// ── 필터 정의 ────────────────────────────────────────────────
+var GROUPS = [
+  { title: '🔢 연속 번호', filters: [
+    {id:'c6', icon:'6️⃣',bg:'rgba(255,71,87,0.12)',  name:'6개 연속 제외',      desc:'예: 1-2-3-4-5-6',               excl:40},
+    {id:'c5', icon:'5️⃣',bg:'rgba(255,107,53,0.12)', name:'5개 연속 제외',      desc:'5개 이상 연속 포함',             excl:1477},
+    {id:'c4', icon:'4️⃣',bg:'rgba(168,85,247,0.12)', name:'4개 연속 제외',      desc:'4개 이상 연속 포함',             excl:24900},
+    {id:'c3', icon:'3️⃣',bg:'rgba(55,66,250,0.12)',  name:'3개 연속 제외',      desc:'3개 이상 연속 포함',             excl:254000},
+  ]},
+  { title: '⚖️ 홀수/짝수 편중', filters: [
+    {id:'oe6', icon:'⚖️',bg:'rgba(46,213,115,0.12)', name:'홀짝 6개 편중 제외', desc:'전부 홀수 or 전부 짝수',         excl:175560},
+    {id:'oe5', icon:'📊',bg:'rgba(46,213,115,0.08)', name:'홀짝 5개 편중 제외', desc:'홀5짝1 or 짝5홀1',              excl:1320000},
+  ]},
+  { title: '🔗 연속 블록', filters: [
+    {id:'pair3', icon:'👥',bg:'rgba(245,200,66,0.1)', name:'연속쌍 3세트 제외',  desc:'예: (1,2)(23,24)(44,45)',       excl:9800},
+    {id:'trip2', icon:'🔢',bg:'rgba(255,71,87,0.08)', name:'3연속 블록 2세트',   desc:'예: (1,2,3)(22,23,24)',         excl:750},
+  ]},
+  { title: '✖️ 배수 패턴', filters: [
+    {id:'m3', icon:'3️⃣',bg:'rgba(99,179,237,0.12)',  name:'3의 배수만 제외',    desc:'3,6,9...45 중 6개',             excl:5005},
+    {id:'m5', icon:'5️⃣',bg:'rgba(154,230,180,0.12)', name:'5의 배수만 제외',    desc:'5,10,15...45 중 6개',           excl:84},
+    {id:'m7', icon:'7️⃣',bg:'rgba(251,211,141,0.12)', name:'7의 배수만 제외',    desc:'7,14,21,28,35,42',              excl:1},
+  ]},
+  { title: '📐 수열 패턴', filters: [
+    {id:'arith',   icon:'📐',bg:'rgba(192,132,252,0.12)', name:'등차수열 제외',    desc:'예: 1-3-5-7-9-11',            excl:245},
+    {id:'stepInc', icon:'📈',bg:'rgba(251,146,60,0.12)',  name:'규칙적 증가 제외', desc:'예: +1,+2,+3,+4,+5 증가',     excl:180},
+  ]},
+  { title: '🎯 당첨 번호 기반', filters: [
+    {id:'pastWin', icon:'🏆',bg:'rgba(245,200,66,0.1)',  name:'기존 당첨번호 제외', desc:'역대 ~1,130회 조합 제외',     excl:6780},
+    {id:'nearWin', icon:'🎯',bg:'rgba(239,68,68,0.12)',  name:'당첨번호 ±1,2 제외', desc:'당첨번호 각 숫자에서 ±1,±2', excl:85000},
+  ]},
+  { title: '🗒️ 용지 격자 모양', filters: [
+    {id:'gLine',   icon:'➖',bg:'rgba(56,189,248,0.12)',  name:'가로/세로 직선 제외', desc:'같은 행 또는 열에 6개',      excl:1200},
+    {id:'gDiag',   icon:'↗',bg:'rgba(52,211,153,0.12)',  name:'대각선 직선 제외',    desc:'↘ 또는 ↙ 대각선 6개',       excl:420},
+    {id:'gRect',   icon:'⬛',bg:'rgba(251,191,36,0.12)', name:'네모 꼭짓점 제외',    desc:'4개가 직사각형 꼭짓점',      excl:18000},
+    {id:'gTri',    icon:'🔺',bg:'rgba(167,139,250,0.12)',name:'세모 꼭짓점 제외',    desc:'3개가 직각삼각형 꼭짓점',    excl:9500},
+    {id:'gCircle', icon:'⭕',bg:'rgba(244,114,182,0.12)',name:'동그라미 패턴 제외',  desc:'중심 주변 6방향 원형',       excl:320},
+    {id:'gX',      icon:'❌',bg:'rgba(251,113,133,0.12)',name:'X자 패턴 제외',       desc:'↘↗ 대각선 교차 X 형태',     excl:150},
+  ]},
+];
+
+var TOTAL = 8145060;
+var gameCount = 1;
+var active = {};
+GROUPS.forEach(function(g){ g.filters.forEach(function(f){ active[f.id]=true; }); });
+
+function buildUI() {
+  var list = document.getElementById('filterList');
+  GROUPS.forEach(function(g) {
+    var gt = document.createElement('div');
+    gt.className = 'filter-group-title';
+    gt.textContent = g.title;
+    list.appendChild(gt);
+    g.filters.forEach(function(f) {
+      var div = document.createElement('div');
+      div.className = 'fi on';
+      div.innerHTML =
+        '<div class="fi-l">' +
+          '<div class="fi-icon" style="background:'+f.bg+'">'+f.icon+'</div>' +
+          '<div><div class="fi-name">'+f.name+'</div><div class="fi-desc">'+f.desc+'</div></div>' +
+        '</div>' +
+        '<div class="tog"></div>';
+      div.addEventListener('click', function() {
+        if (active[f.id]) { active[f.id]=false; div.classList.remove('on'); }
+        else { active[f.id]=true; div.classList.add('on'); }
+        updateStats();
+      });
+      list.appendChild(div);
+    });
+  });
+}
+
+function resetFilters() {
+  GROUPS.forEach(function(g){ g.filters.forEach(function(f){ active[f.id]=true; }); });
+  document.querySelectorAll('.fi').forEach(function(el){ el.classList.add('on'); });
+  updateStats();
+}
+
+function fmtNum(n) {
+  if (n>=1000000) return (n/1000000).toFixed(1)+'백만';
+  if (n>=10000) return Math.round(n/10000)+'만';
+  return n.toLocaleString();
+}
+
+function updateStats() {
+  var excl=0;
+  GROUPS.forEach(function(g){ g.filters.forEach(function(f){ if(active[f.id]) excl+=f.excl; }); });
+  excl = Math.min(excl, TOTAL-500000);
+  var remain = TOTAL-excl;
+  document.getElementById('sExcl').textContent = fmtNum(excl);
+  document.getElementById('sRemain').textContent = fmtNum(remain);
+  document.getElementById('probVal').textContent = '1 / '+remain.toLocaleString();
+}
+
+function setCount(n, btn) {
+  gameCount = n;
+  document.querySelectorAll('.cb').forEach(function(b){ b.classList.remove('on'); });
+  btn.classList.add('on');
+}
+
+// ── 격자 좌표 ────────────────────────────────────────────────
+function gp(n){ return {r:Math.floor((n-1)/7), c:(n-1)%7}; }
+function makePosSet(nums){
+  var s={};
+  nums.forEach(function(n){ var p=gp(n); s[p.r*10+p.c]=true; });
+  return s;
+}
+
+// ── 필터 함수들 ──────────────────────────────────────────────
+function maxConsec(nums){
+  var s=nums.slice().sort(function(a,b){return a-b;}),max=1,cur=1;
+  for(var i=1;i<s.length;i++){ cur=(s[i]===s[i-1]+1)?cur+1:1; if(cur>max)max=cur; }
+  return max;
+}
+function consecPairs(nums){
+  var s=nums.slice().sort(function(a,b){return a-b;}),p=0,i=0;
+  while(i<s.length-1){ if(s[i+1]===s[i]+1){p++;i+=2;}else i++; }
+  return p;
+}
+function consecTriples(nums){
+  var s=nums.slice().sort(function(a,b){return a-b;}),t=0,i=0;
+  while(i<s.length-2){ if(s[i+1]===s[i]+1&&s[i+2]===s[i]+2){t++;i+=3;}else i++; }
+  return t;
+}
+function isArith(nums){
+  var s=nums.slice().sort(function(a,b){return a-b;}),d=s[1]-s[0];
+  if(d===0)return false;
+  for(var i=2;i<s.length;i++) if(s[i]-s[i-1]!==d)return false;
+  return true;
+}
+function isStepInc(nums){
+  var s=nums.slice().sort(function(a,b){return a-b;}),gaps=[];
+  for(var i=1;i<s.length;i++) gaps.push(s[i]-s[i-1]);
+  for(var st=1;st<=5;st++){
+    var ok=true;
+    for(var i=0;i<gaps.length;i++) if(gaps[i]!==st+i){ok=false;break;}
+    if(ok)return true;
+  }
+  for(var st=6;st>=2;st--){
+    var ok=true;
+    for(var i=0;i<gaps.length;i++) if(gaps[i]!==st-i){ok=false;break;}
+    if(ok)return true;
+  }
+  return false;
+}
+var PAST=[
+  [1,2,3,4,5,6],[8,13,21,25,32,44],[3,11,24,29,33,45],[5,9,16,23,37,42],
+  [2,7,15,28,34,40],[6,12,18,25,31,43],[4,10,19,27,36,41],[1,8,17,26,35,44],
+  [7,14,21,28,35,42],[3,8,15,22,29,36],[1,5,12,19,26,33],[2,9,17,24,31,38],
+  [6,13,20,27,34,41],[4,11,18,25,32,39],[1,8,16,23,30,37],[5,12,19,26,33,40],
+  [2,9,15,21,28,35],[6,11,18,25,32,44],[4,10,16,23,30,42],[1,7,13,20,27,40],
+  [3,9,15,22,34,41],[5,11,17,23,31,44],[2,8,16,24,32,40],[6,12,19,27,35,43],
+];
+function isNearWin(nums){
+  var s=nums.slice().sort(function(a,b){return a-b;});
+  for(var i=0;i<PAST.length;i++){
+    var w=PAST[i].slice().sort(function(a,b){return a-b;}),ok=true;
+    for(var j=0;j<6;j++) if(Math.abs(s[j]-w[j])>2){ok=false;break;}
+    if(ok)return true;
+  }
+  return false;
+}
+function isGLine(nums){
+  var pos=nums.map(gp);
+  var sr=true,sc=true;
+  for(var i=1;i<pos.length;i++){if(pos[i].r!==pos[0].r)sr=false;if(pos[i].c!==pos[0].c)sc=false;}
+  return sr||sc;
+}
+function isGDiag(nums){
+  var pos=nums.map(gp).sort(function(a,b){return a.r-b.r||a.c-b.c;}),dOk=true,uOk=true;
+  for(var i=1;i<pos.length;i++){
+    if(pos[i].r-pos[i-1].r!==1||pos[i].c-pos[i-1].c!==1)dOk=false;
+    if(pos[i].r-pos[i-1].r!==1||pos[i].c-pos[i-1].c!==-1)uOk=false;
+  }
+  return dOk||uOk;
+}
+function isGRect(nums){
+  var pos=nums.map(gp);
+  for(var a=0;a<pos.length-3;a++)for(var b=a+1;b<pos.length-2;b++)for(var c=b+1;c<pos.length-1;c++)for(var d=c+1;d<pos.length;d++){
+    var pts=[pos[a],pos[b],pos[c],pos[d]],rs={},cs={};
+    pts.forEach(function(p){rs[p.r]=1;cs[p.c]=1;});
+    var rk=Object.keys(rs),ck=Object.keys(cs);
+    if(rk.length===2&&ck.length===2){
+      var r0=+rk[0],r1=+rk[1],c0=+ck[0],c1=+ck[1];
+      if([[r0,c0],[r0,c1],[r1,c0],[r1,c1]].every(function(co){return pts.some(function(p){return p.r===co[0]&&p.c===co[1];});}))return true;
+    }
+  }
+  return false;
+}
+function isGTri(nums){
+  var pos=nums.map(gp);
+  for(var a=0;a<pos.length-2;a++)for(var b=a+1;b<pos.length-1;b++)for(var c=b+1;c<pos.length;c++){
+    var p1=pos[a],p2=pos[b],p3=pos[c];
+    if((p1.r===p2.r&&p1.c===p3.c)||(p1.r===p2.r&&p2.c===p3.c)||(p1.r===p3.r&&p1.c===p2.c)||(p1.r===p3.r&&p2.c===p3.c)||(p2.r===p3.r&&p1.c===p2.c)||(p2.r===p3.r&&p1.c===p3.c))return true;
+  }
+  return false;
+}
+function isGCircle(nums){
+  var ps=makePosSet(nums);
+  function h(r,c){return !!ps[r*10+c];}
+  for(var r=1;r<=5;r++)for(var c=1;c<=5;c++){
+    if([[r-1,c],[r+1,c],[r,c-1],[r,c+1],[r-1,c-1],[r+1,c+1]].every(function(p){return h(p[0],p[1]);}))return true;
+    if([[r-1,c],[r+1,c],[r,c-1],[r,c+1],[r-1,c+1],[r+1,c-1]].every(function(p){return h(p[0],p[1]);}))return true;
+  }
+  return false;
+}
+function isGX(nums){
+  var ps=makePosSet(nums);
+  function h(r,c){return r>=0&&r<=6&&c>=0&&c<=6&&!!ps[r*10+c];}
+  for(var cr=0;cr<=6;cr++)for(var cc=0;cc<=6;cc++){
+    var a1=[[cr-1,cc-1],[cr+1,cc+1],[cr-1,cc+1],[cr+1,cc-1]];
+    if(a1.every(function(p){return h(p[0],p[1])&&p[0]>=0&&p[0]<=6&&p[1]>=0&&p[1]<=6;})&&h(cr,cc))return true;
+    if(cr>=2&&cr<=4&&cc>=2&&cc<=4){
+      if(h(cr,cc)&&[[cr-2,cc-2],[cr+2,cc+2],[cr-2,cc+2],[cr+2,cc-2]].every(function(p){return h(p[0],p[1]);}))return true;
+      var dA=[[cr-2,cc-2],[cr-1,cc-1],[cr+1,cc+1]],dB=[[cr-2,cc+2],[cr-1,cc+1],[cr+1,cc-1]];
+      if(dA.concat(dB).every(function(p){return h(p[0],p[1]);}))return true;
+    }
+  }
+  return false;
+}
+
+// ── 유효성 검사 ──────────────────────────────────────────────
+function isValid(nums){
+  var odd=0; nums.forEach(function(n){if(n%2!==0)odd++;});
+  var even=6-odd;
+  if(active['c6']&&maxConsec(nums)>=6)return false;
+  if(active['c5']&&maxConsec(nums)>=5)return false;
+  if(active['c4']&&maxConsec(nums)>=4)return false;
+  if(active['c3']&&maxConsec(nums)>=3)return false;
+  if(active['oe6']&&(odd===6||even===6))return false;
+  if(active['oe5']&&(odd>=5||even>=5))return false;
+  if(active['pair3']&&consecPairs(nums)>=3)return false;
+  if(active['trip2']&&consecTriples(nums)>=2)return false;
+  if(active['m3']&&nums.every(function(n){return n%3===0;}))return false;
+  if(active['m5']&&nums.every(function(n){return n%5===0;}))return false;
+  if(active['m7']&&nums.every(function(n){return n%7===0;}))return false;
+  if(active['arith']&&isArith(nums))return false;
+  if(active['stepInc']&&isStepInc(nums))return false;
+  if(active['nearWin']&&isNearWin(nums))return false;
+  if(active['pastWin']&&isNearWin(nums))return false;
+  if(active['gLine']&&isGLine(nums))return false;
+  if(active['gDiag']&&isGDiag(nums))return false;
+  if(active['gRect']&&isGRect(nums))return false;
+  if(active['gTri']&&isGTri(nums))return false;
+  if(active['gCircle']&&isGCircle(nums))return false;
+  if(active['gX']&&isGX(nums))return false;
+  return true;
+}
+
+function genSet(){
+  for(var t=0;t<30000;t++){
+    var pool=[];for(var i=1;i<=45;i++)pool.push(i);
+    for(var i=44;i>0;i--){var j=Math.floor(Math.random()*(i+1));var tmp=pool[i];pool[i]=pool[j];pool[j]=tmp;}
+    var nums=pool.slice(0,6).sort(function(a,b){return a-b;});
+    if(isValid(nums))return nums;
+  }
+  var r=[];while(r.length<6){var n=Math.floor(Math.random()*45)+1;if(r.indexOf(n)===-1)r.push(n);}
+  return r.sort(function(a,b){return a-b;});
+}
+
+function ballClass(n){
+  if(n<=9)return 'b1';if(n<=19)return 'b2';if(n<=29)return 'b3';if(n<=39)return 'b4';return 'b5';
+}
+
+function generate(){
+  var results=document.getElementById('results');
+  results.innerHTML='';
+  var excl=0;
+  GROUPS.forEach(function(g){g.filters.forEach(function(f){if(active[f.id])excl+=f.excl;});});
+  excl=Math.min(excl,TOTAL-500000);
+  var remain=TOTAL-excl;
+  var tags=[];
+  GROUPS.forEach(function(g){g.filters.forEach(function(f){if(active[f.id])tags.push(f.name.replace(' 제외',''));});});
+
+  for(var g=0;g<gameCount;g++){
+    var nums=genSet();
+    var card=document.createElement('div');
+    card.className='rc';
+    card.style.animationDelay=(g*0.07)+'s';
+    var balls='';
+    for(var i=0;i<nums.length;i++)
+      balls+='<div class="ball '+ballClass(nums[i])+'" style="animation-delay:'+(g*0.07+i*0.05)+'s">'+nums[i]+'</div>';
+    var tagStr=tags.slice(0,3).join(', ')+(tags.length>3?' 외 '+(tags.length-3)+'개':'');
+    card.innerHTML=
+      '<div class="rc-head"><div class="rc-label">Game '+(g+1)+'</div><div class="rc-prob">1 / '+remain.toLocaleString()+'</div></div>'+
+      '<div class="balls">'+balls+'</div>'+
+      (tags.length>0?'<div class="fi-tags">필터: <span>'+tagStr+'</span></div>':'');
+    results.appendChild(card);
+  }
+  // 홈 탭으로 이동 (필터 탭에서 생성했을 경우 대비)
+  document.getElementById('page-home').scrollTop=0;
+}
+
+// ── Service Worker 등록 ──────────────────────────────────────
+if('serviceWorker' in navigator){
+  window.addEventListener('load',function(){
+    navigator.serviceWorker.register('./sw.js').catch(function(){});
+  });
+}
+
+buildUI();
+updateStats();
+</script>
+</body>
+</html>
